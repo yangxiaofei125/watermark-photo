@@ -18,7 +18,7 @@
                    新建照片
                 </a-button>
             </a-upload>
-            <a-button  type="primary">
+            <a-button  type="primary" @click="download">
                 <template #icon>
                     <DownloadOutlined />
                 </template>
@@ -52,7 +52,7 @@
         </div>
 
         <a-typography-title :level="3">预览</a-typography-title>
-        <div class="img-container">
+        <div id="previewImg" class="img-container">
             <img v-if="imgUrl!==''" class="preview-img" :src="imgUrl" alt="">
             <img v-else class="preview-img" src="../assets/sun.jpeg" alt="">
             <div class="bottom">
@@ -78,9 +78,10 @@
 <script setup>
 import {computed, ref} from 'vue';
 import piexifjs, { piexif } from 'piexifjs'
+import domtoimage from 'dom-to-image'
 import { message } from "ant-design-vue";
 let imgUrl = ref("")
-
+let previewImg = ref(null)
 const brandList = [
     "Apple",
     "Canon",
@@ -162,11 +163,11 @@ const beforeUpload = file => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onloadend = () => {
+      try {
         const exifData =  piexifjs.load(reader.result)
-        console.log('exif',exifData)
         if(Object.keys(exifData.Exif).length === 0) {
-            message.error('无法识别该图片特定信息，请换一张')
-            return false;
+          message.error('无法识别该图片特定信息，请换一张')
+          return false;
         }
         const exifFormatData = parseExifData(exifData)
         photoInfo.value.model = exifFormatData.M
@@ -176,8 +177,49 @@ const beforeUpload = file => {
         imgUrl.value = reader.result;
         fileList.value.splice(0,fileList.value.length)
         return false
+      } catch (error) {
+        message.error('无法识别该图片特定信息，请换一张')
+        fileList.value.splice(0,fileList.value.length)
+        return false;
+      }
     };
 };
+const download = () => {
+  const previewDom = document.getElementById('previewImg')
+  const zoomRatio = 4;
+  domtoimage
+      .toJpeg(previewDom, {
+        quality: 0.8,
+        width: previewDom.clientWidth * zoomRatio,
+        height: previewDom.clientHeight * zoomRatio,
+        style: {
+          transform: "scale(" + zoomRatio + ")",
+          "transform-origin": "top left",
+        },
+      })
+      .then((data) => {
+        const binaryString = window.atob(data.split(",")[1]);
+        const length = binaryString.length;
+        const binaryArray = new Uint8Array(length);
+
+        for (let i = 0; i < length; i++)
+          binaryArray[i] = binaryString.charCodeAt(i);
+
+        return new Blob([binaryArray], {
+          type: "image/jpeg",
+        });
+      })
+      .then((data) => window.URL.createObjectURL(data))
+      .then((data) => {
+        const link = document.createElement("a");
+
+        link.download = Date.now() + ".jpg";
+        link.href = data;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      });
+}
 const fileList = ref([])
 </script>
 
@@ -190,11 +232,14 @@ const fileList = ref([])
         box-sizing: border-box;
         .preview-img {
             width: 100%;
+          box-sizing: border-box;
         }
         .bottom {
             position: relative;
             padding: 20px;
             display: flex;
+            background-color: #fff;
+            box-sizing: border-box;
             .left {
               display: flex;
               flex-direction: column;
@@ -248,8 +293,8 @@ const fileList = ref([])
 
 </style>
 <style>
-.props .ant-btn,
-.props .ant-input,
+.ant-btn,
+.ant-input,
 .props .ant-select-selector {
     border-radius: 0;
 }
