@@ -6,22 +6,16 @@
             <a-upload
                 type="primary"
                 v-model:file-list="fileList"
-                multiple= "false"
+                :multiple= "false"
                 action=" "
                 :before-upload="beforeUpload"
             >
                 <a-button>
-                    <template #icon>
-                        <PlusOutlined />
-                    </template>
-                    <upload-outlined></upload-outlined>
+<!--                    <upload-outlined></upload-outlined>-->
                    新建照片
                 </a-button>
             </a-upload>
             <a-button  type="primary" @click="download">
-                <template #icon>
-                    <DownloadOutlined />
-                </template>
                 下载照片
             </a-button>
         </div>
@@ -38,6 +32,7 @@
                 <a-form-item label="品牌" name="brand">
                     <a-select
                     v-model:value="photoInfo.brand"
+                    @change="changeBrand"
                     style="width: 170px"
                     :options="brandList.map(brand => ({ value: brand }))"
                 ></a-select>
@@ -54,7 +49,7 @@
         <a-typography-title :level="3">预览</a-typography-title>
         <div id="previewImg" class="img-container">
             <img v-if="imgUrl!==''" class="preview-img" :src="imgUrl" alt="">
-            <img v-else class="preview-img" src="../assets/sun.jpeg" alt="">
+            <img v-else class="preview-img " src="../assets/sun.jpeg" alt="">
             <div class="bottom">
                 <div class="left">
                     <span class="model" >{{photoInfo.model }}</span>
@@ -62,7 +57,7 @@
                 </div>
                 <div class="right">
                     <div class="brand">
-                        <img src="../assets/brand/apple.svg" alt="">
+                        <img :src="'src/assets/brand/'+ brandUrl" alt="">
                     </div>
                     <div class="preview-info-split"></div>
                      <div class="iso-info">
@@ -76,12 +71,14 @@
 </template>
 
 <script setup>
-import {computed, ref} from 'vue';
+import {computed, reactive, ref} from 'vue';
 import piexifjs, { piexif } from 'piexifjs'
 import domtoimage from 'dom-to-image'
 import { message } from "ant-design-vue";
+
+
 let imgUrl = ref("")
-let previewImg = ref(null)
+let brandUrl = ref('apple.svg')
 const brandList = [
     "Apple",
     "Canon",
@@ -94,14 +91,14 @@ const brandList = [
     "Sony",
     "未收录",
 ]
-
-let photoInfo = ref({
+const photoInfo = ref({
     brand:'Apple',
     device: '4.25mm f/1.8 1/805 ISO 32',
     time: '2024:03:16 17:52:23',
     model: 'iPhone 11',
     gps: '31°31\'11.73"N 120°16\'5.18"E'
 })
+const fileList = ref([])
 
 const isoInfoStr = (exifInfo) => {
     if(Object.keys(exifInfo).length === 0) return null
@@ -133,8 +130,10 @@ const gpsStr = (gps) => {
         }
         return pre+str
     },'')
-    console.log(weidu + gps[0] +' '+jingdu+ gps[2])
     return weidu + gps[0] +' '+jingdu+ gps[2]
+}
+const changeBrand = () => {
+  brandUrl.value = photoInfo.value.brand === "未收录" ? "unknow.svg" : `${photoInfo.value.brand.toLowerCase()}.svg`
 }
 
 //piexifjs解析出来的Exif参数对象可读性不强，需要格式化处理一下
@@ -162,6 +161,7 @@ const parseExifData = (exifData) => {
 const beforeUpload = file => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
+    // onload 当某个资源（如图片）或者整个文档加载完成时触发 onloadend 当加载操作结束时（无论成功还是失败）触发
     reader.onloadend = () => {
       try {
         const exifData =  piexifjs.load(reader.result)
@@ -220,26 +220,22 @@ const download = () => {
         link.remove();
       });
 }
-const fileList = ref([])
+
 </script>
 
 <style lang="scss" scoped>
 .page-container {
     width: 800px;
     .img-container {
-        max-width: 100%;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        box-sizing: border-box;
-        .preview-img {
-            width: 100%;
-          box-sizing: border-box;
+        img  {
+            max-width: 100%;
         }
         .bottom {
-            position: relative;
             padding: 20px;
             display: flex;
+            justify-content: space-between;
             background-color: #fff;
-            box-sizing: border-box;
             .left {
               display: flex;
               flex-direction: column;
@@ -255,13 +251,13 @@ const fileList = ref([])
               }
             }
             .right {
-                position: absolute;
-                right: 20px;
                 display: flex;
                 .brand {
-                    width: 30px;
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
                     img {
-                        width: 100%;
+                      height: 39px;
                     }
                 }
                 .preview-info-split {

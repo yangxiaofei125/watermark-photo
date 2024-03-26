@@ -62,7 +62,13 @@
   margin: 0 auto;
   padding: 2rem;
 }
-
+*, :after, :before {
+  box-sizing: border-box;
+}
+img {
+  vertical-align: middle;
+  border-style: none;
+}
 /*@media (prefers-color-scheme: light) {*/
 /*  :root {*/
 /*    color: #213547;*/
