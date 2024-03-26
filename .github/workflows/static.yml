@@ -29,5 +29,4 @@ jobs:
           folder: dist # 这里填打包好的目录名称
           clean: true
           
-          token:  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
-
+          token:  ${{ secrets.TOKEN }}
