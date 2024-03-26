@@ -5,7 +5,11 @@ on:
   push:
     branches:
       - master # 这里只配置了 master 分支，所以只有推送 master 分支才会触发以下任务
-
+# 设置 GITHUB_TOKEN 的权限，以允许部署到 GitHub Pages。
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 jobs:
   # 任务ID
   build-and-deploy:
