@@ -4,7 +4,7 @@ import * as path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  // base: '/watermark-photo/',
+  base: '/watermark-photo/',
   plugins: [
     vue(),
   ],
