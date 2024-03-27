@@ -57,7 +57,8 @@
                 </div>
                 <div class="right">
                     <div class="brand">
-                        <img :src="'../assets/brand/'+ brandUrl" alt="">
+<!--                         splicingBrandPath-->
+                        <img :src="handleSrc(brandUrl)" alt="">
                     </div>
                     <div class="preview-info-split"></div>
                      <div class="iso-info">
@@ -76,6 +77,9 @@ import piexifjs, { piexif } from 'piexifjs'
 import domtoimage from 'dom-to-image'
 import { message } from "ant-design-vue";
 
+function handleSrc(brandName) {
+  return new URL(`../assets/brand/${brandName}`, import.meta.url,).href
+}
 
 let imgUrl = ref("")
 let brandUrl = ref('apple.svg')
@@ -132,6 +136,7 @@ const gpsStr = (gps) => {
     },'')
     return weidu + gps[0] +' '+jingdu+ gps[2]
 }
+
 const changeBrand = () => {
   brandUrl.value = photoInfo.value.brand === "未收录" ? "unknow.svg" : `${photoInfo.value.brand.toLowerCase()}.svg`
 }
@@ -166,7 +171,7 @@ const beforeUpload = file => {
       try {
         const exifData =  piexifjs.load(reader.result)
         if(Object.keys(exifData.Exif).length === 0) {
-          message.error('无法识别该图片特定信息，请换一张')
+          message.error('无法识别该图片的exif信息，请换一张')
           return false;
         }
         const exifFormatData = parseExifData(exifData)
@@ -178,7 +183,7 @@ const beforeUpload = file => {
         fileList.value.splice(0,fileList.value.length)
         return false
       } catch (error) {
-        message.error('无法识别该图片特定信息，请换一张')
+        message.error('无法识别该图片的exif信息，请换一张')
         fileList.value.splice(0,fileList.value.length)
         return false;
       }
@@ -290,12 +295,15 @@ const download = () => {
 </style>
 <style>
 .ant-btn,
-.ant-input,
 .props .ant-select-selector {
     border-radius: 0;
 }
 
 .props .ant-form-inline .ant-form-item {
     margin-bottom: 10px;
+}
+.ant-input {
+    width: 170px;
+    border-radius: 0;
 }
 </style>

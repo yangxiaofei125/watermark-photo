@@ -8,6 +8,12 @@ export default defineConfig({
   plugins: [
     vue(),
   ],
+  resolve: {
+    //设置别名
+    alias: {
+      '@': path.resolve(__dirname, 'src')
+    }
+  },
   build: {
     sourcemap: true,
     manifest: true,
