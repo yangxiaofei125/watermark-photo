@@ -57,7 +57,7 @@
                 </div>
                 <div class="right">
                     <div class="brand">
-                        <img :src="'src/assets/brand/'+ brandUrl" alt="">
+                        <img :src="'../assets/brand/'+ brandUrl" alt="">
                     </div>
                     <div class="preview-info-split"></div>
                      <div class="iso-info">
