@@ -73,16 +73,13 @@
 
 <script setup>
 import {computed, reactive, ref} from 'vue';
-import piexifjs, { piexif } from 'piexifjs'
+import ExifReader from 'exifreader';
 import domtoimage from 'dom-to-image'
 import { message } from "ant-design-vue";
 
-function handleSrc(brandName) {
-  return new URL(`../assets/brand/${brandName}`, import.meta.url,).href
-}
-
 let imgUrl = ref("")
 let brandUrl = ref('apple.svg')
+
 const brandList = [
     "Apple",
     "Canon",
@@ -95,6 +92,14 @@ const brandList = [
     "Sony",
     "未收录",
 ]
+
+const changeBrand = () => {
+  brandUrl.value = photoInfo.value.brand === "未收录" ? "unknow.svg" : `${photoInfo.value.brand.toLowerCase()}.svg`
+}
+function handleSrc(brandName) {
+  return new URL(`../assets/brand/${brandName}`, import.meta.url,).href
+}
+
 const photoInfo = ref({
     brand:'Apple',
     device: '4.25mm f/1.8 1/805 ISO 32',
@@ -104,94 +109,49 @@ const photoInfo = ref({
 })
 const fileList = ref([])
 
-const isoInfoStr = (exifInfo) => {
-    if(Object.keys(exifInfo).length === 0) return null
-    return `${exifInfo.L}mm f/${exifInfo.F} ${exifInfo.S} ISO ${exifInfo.ISO} `
-}
-const gpsStr = (gps) => {
-    if(!gps) return ''
-    const weidu = gps[1].reduce((pre,[fenzi,fenmu],index) => {
-        const num = fenzi / fenmu
-        let str = ``
-        if(index === 0) {
-            str = `${num}°`
-        }else if(index === 1){
-            str = `${num}'`
-        }else {
-            str = `${num}"`
-        }
-        return pre+str
-    },'')
-    const jingdu = gps[3].reduce((pre,[fenzi,fenmu],index) => {
-        const num = fenzi / fenmu
-        let str = ``
-        if(index === 0) {
-            str = `${num}°`
-        }else if(index === 1){
-            str = `${num}'`
-        }else {
-            str = `${num}"`
-        }
-        return pre+str
-    },'')
-    return weidu + gps[0] +' '+jingdu+ gps[2]
-}
-
-const changeBrand = () => {
-  brandUrl.value = photoInfo.value.brand === "未收录" ? "unknow.svg" : `${photoInfo.value.brand.toLowerCase()}.svg`
-}
-
-//piexifjs解析出来的Exif参数对象可读性不强，需要格式化处理一下
-const parseExifData = (exifData) => {
-    if(!exifData) return null
-    const M = exifData['0th'][piexif.ImageIFD.Model]
-    const F = exifData.Exif[piexif.ExifIFD.FNumber]
-    const S = exifData.Exif[piexif.ExifIFD.ExposureTime]
-    const ISO = exifData.Exif[piexif.ExifIFD.ISOSpeedRatings]
-    const L = exifData.Exif[piexif.ExifIFD.FocalLength]
-    const LEN = exifData.Exif[piexif.ExifIFD.LensModel]
-    const T = exifData.Exif[piexif.ExifIFD.DateTimeOriginal]
-    const GPS = Object.values(exifData.GPS).slice(0,4)
-    return {
-        M: M || null,
-        F: F && F[0] && F[1] ? F[0] / F[1] : null,
-        S: S && S[0] && S[1] ? S[0] +'/'+ S[1] : null,
-        ISO: ISO || null,
-        L: L && L[0] && L[1] ? L[0] / L[1] : null,
-        LEN:LEN||null,
-        T:T||null,
-        GPS: GPS || null
-    }
-}
 const beforeUpload = file => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
     // onload 当某个资源（如图片）或者整个文档加载完成时触发 onloadend 当加载操作结束时（无论成功还是失败）触发
     reader.onloadend = () => {
-      try {
-        const exifData =  piexifjs.load(reader.result)
-        if(Object.keys(exifData.Exif).length === 0) {
-          message.error('无法识别该图片的exif信息，请换一张')
-          return false;
+      ExifReader.load(reader.result).then(res => {
+        console.log('res',res)
+        const {
+          FocalLength,FNumber,ExposureTime,ISOSpeedRatings,GPSLatitude,GPSLongitude,GPSLatitudeRef,GPSLongitudeRef
+        } = res
+        photoInfo.value.model = res.Model?.value[0]
+        photoInfo.value.time = res.DateTime?.value[0]
+        photoInfo.value.device = `${FocalLength.description} ${FNumber.description} ${ExposureTime.description} ISO ${ISOSpeedRatings.value}`
+        const latitudeStr= gpsToStr(GPSLatitude.value)
+        const longitudeStr= gpsToStr(GPSLongitude.value)
+        photoInfo.value.gps = `${latitudeStr} ${GPSLatitudeRef.value[0]}   ${longitudeStr} ${GPSLongitudeRef.value[0]}`
+        function gpsToStr(gps) {
+         return  gps.reduce((pre,[fenzi,fenmu],index) => {
+            const num = fenzi / fenmu
+            let str = ``
+            if(index === 0) {
+              str = `${num}°`
+            }else if(index === 1){
+              str = `${num}'`
+            }else {
+              str = `${num}"`
+            }
+            return pre+str
+          },'')
         }
-        const exifFormatData = parseExifData(exifData)
-        photoInfo.value.model = exifFormatData.M
-        photoInfo.value.time = exifFormatData.T
-        photoInfo.value.device = isoInfoStr(exifFormatData)
-        photoInfo.value.gps = gpsStr(exifFormatData.GPS)
         imgUrl.value = reader.result;
-        fileList.value.splice(0,fileList.value.length)
-        return false
-      } catch (error) {
+      }).catch(err => {
+        console.log('err',err)
         message.error('无法识别该图片的exif信息，请换一张')
-        fileList.value.splice(0,fileList.value.length)
-        return false;
-      }
+      })
+      fileList.value.splice(0,fileList.value.length)
+      return false
     };
 };
 const download = () => {
   const previewDom = document.getElementById('previewImg')
   const zoomRatio = 4;
+  // 转成 blob 二进制 格式下载图片
   domtoimage
       .toJpeg(previewDom, {
         quality: 0.8,
@@ -203,7 +163,9 @@ const download = () => {
         },
       })
       .then((data) => {
+        // window.atob 将base64编码的数据解码
         const binaryString = window.atob(data.split(",")[1]);
+        console.log("binaryString", binaryString)
         const length = binaryString.length;
         const binaryArray = new Uint8Array(length);
 
@@ -224,6 +186,26 @@ const download = () => {
         link.click();
         link.remove();
       });
+  // 直接以base64格式下载图片
+  domtoimage
+    .toPng(previewDom, {
+      quality: 0.8,
+      width: previewDom.clientWidth * zoomRatio,
+      height: previewDom.clientHeight * zoomRatio,
+      style: {
+        transform: "scale(" + zoomRatio + ")",
+        "transform-origin": "top left",
+      },
+    })
+    .then((baseUrl) => {
+      // 在使用 Base64 数据 URL 下载图片时，图片数据会被编码为字符串，这可能会增加数据的大小。而使用 Blob 对象下载则是直接下载原始的二进制数据，因此可能会更高效地处理大型图片。
+      const link = document.createElement("a");
+      link.download = Date.now() + ".png";
+      link.href = baseUrl;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    });
 }
 
 </script>
