@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ant-design/icons-vue": "^7.0.1",
     "ant-design-vue": "4.x",
     "dom-to-image": "^2.6.0",
     "exifreader": "^4.21.1",

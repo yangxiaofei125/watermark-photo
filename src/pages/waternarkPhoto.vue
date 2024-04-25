@@ -10,12 +10,17 @@
                 action=" "
                 :before-upload="beforeUpload"
             >
-                <a-button>
-<!--                    <upload-outlined></upload-outlined>-->
+                <a-button  >
+                    <template #icon>
+                        <UploadOutlined />
+                    </template>
                    新建照片
                 </a-button>
             </a-upload>
             <a-button  type="primary" @click="download">
+                <template #icon>
+                    <DownloadOutlined />
+                </template>
                 下载照片
             </a-button>
         </div>
@@ -79,7 +84,7 @@ import { message } from "ant-design-vue";
 
 let imgUrl = ref("")
 let brandUrl = ref('apple.svg')
-
+// test 测试合并到最新的commit
 const brandList = [
     "Apple",
     "Canon",
@@ -92,6 +97,7 @@ const brandList = [
     "Sony",
     "未收录",
 ]
+
 
 const changeBrand = () => {
   brandUrl.value = photoInfo.value.brand === "未收录" ? "unknow.svg" : `${photoInfo.value.brand.toLowerCase()}.svg`
